@@ -49,6 +49,7 @@ class ProjectList;
 class QuickSettingsDialog;
 class RichTextLabel;
 class TabContainer;
+class TagList;
 class VBoxContainer;
 
 class ProjectManager : public Control {
@@ -217,6 +218,9 @@ class ProjectManager : public Control {
 	void _on_search_term_changed(const String &p_term);
 	void _on_search_term_submitted(const String &p_text);
 
+	// Tag list
+	TagList *tag_list = nullptr;
+
 	// Project tag management.
 
 	HashSet<String> tag_set;
@@ -284,6 +288,7 @@ public:
 	// Project tag management.
 
 	void add_new_tag(const String &p_tag);
+	void load_tags();
 
 	// Theme.
 	Ref<Theme> get_theme() const { return theme; }

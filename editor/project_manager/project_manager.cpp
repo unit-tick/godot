@@ -53,6 +53,7 @@
 #include "editor/project_manager/project_list.h"
 #include "editor/project_manager/project_tag.h"
 #include "editor/project_manager/quick_settings_dialog.h"
+#include "editor/project_manager/tag_list.h"
 #include "editor/settings/editor_settings.h"
 #include "editor/themes/editor_scale.h"
 #include "editor/themes/editor_theme_manager.h"
@@ -1125,12 +1126,22 @@ void ProjectManager::_create_new_tag() {
 }
 
 void ProjectManager::add_new_tag(const String &p_tag) {
-	if (!tag_set.has(p_tag)) {
-		tag_set.insert(p_tag);
+	if (!tag_list->has(p_tag)) {
+		tag_list->add_tag(p_tag);
 		ProjectTag *tag_control = memnew(ProjectTag(p_tag));
 		all_tags->add_child(tag_control);
 		all_tags->move_child(tag_control, -2);
 		tag_control->connect_button_to(callable_mp(this, &ProjectManager::_add_project_tag).bind(p_tag));
+	}
+}
+
+void ProjectManager::load_tags() {
+	PackedStringArray tlist = tag_list->get_tags();
+	for (String &tag : tag_list->get_tags()) {
+		ProjectTag *tag_control = memnew(ProjectTag(tag));
+		all_tags->add_child(tag_control);
+		all_tags->move_child(tag_control, -2);
+		tag_control->connect_button_to(callable_mp(this, &ProjectManager::_add_project_tag).bind(tag));
 	}
 }
 
@@ -1935,6 +1946,11 @@ ProjectManager::ProjectManager() {
 		create_tag_btn->connect(SceneStringName(pressed), callable_mp((Window *)create_tag_dialog, &Window::popup_centered).bind(Vector2i(500, 0) * EDSCALE));
 
 		_set_new_tag_name("");
+	}
+	// Initialize tag list.
+	{
+		tag_list = memnew(TagList);
+		load_tags();
 	}
 
 	// Initialize project list.
