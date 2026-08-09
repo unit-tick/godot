@@ -46,6 +46,7 @@ class PanelContainer;
 class PopupMenu;
 class ProjectDialog;
 class ProjectList;
+class ProjectTemplate;
 class QuickSettingsDialog;
 class RichTextLabel;
 class TabContainer;
@@ -243,6 +244,14 @@ class ProjectManager : public Control {
 	void _apply_project_tags();
 	void _set_new_tag_name(const String p_name);
 	void _create_new_tag();
+
+	// Project template.
+
+	Button *create_template_btn = nullptr;
+	Button *manage_template_btn = nullptr;
+
+	void _open_template_manage_dialog();
+	void _open_template_create_dialog();
 
 	// Project converter/migration tool.
 

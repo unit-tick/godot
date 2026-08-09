@@ -122,6 +122,7 @@
 #include "editor/plugins/editor_plugin_list.h"
 #include "editor/plugins/editor_resource_conversion_plugin.h"
 #include "editor/plugins/plugin_config_dialog.h"
+#include "editor/project_template/project_template.h"
 #include "editor/project_upgrade/project_upgrade_tool.h"
 #include "editor/run/editor_run.h"
 #include "editor/run/editor_run_bar.h"
@@ -861,7 +862,6 @@ bool EditorNode::_is_project_data_missing() {
 	if (!da->dir_exists(project_data_dir)) {
 		return true;
 	}
-
 	String project_data_gdignore_file_path = project_data_dir.path_join(".gdignore");
 	if (!FileAccess::exists(project_data_gdignore_file_path)) {
 		Ref<FileAccess> f = FileAccess::open(project_data_gdignore_file_path, FileAccess::WRITE);
@@ -3780,6 +3780,11 @@ void EditorNode::_menu_option_confirm(int p_option, bool p_confirmed) {
 			// Ensure_user_data_dir() to prevent the edge case: "Open User Data Folder" won't work after the project was renamed in ProjectSettingsEditor unless the project is saved.
 			OS::get_singleton()->ensure_user_data_dir();
 			OS::get_singleton()->shell_show_in_file_manager(OS::get_singleton()->get_user_data_dir(), true);
+		} break;
+		case PROJECT_CREATE_TEMPLATE: {
+			const String project_path = ProjectSettings::get_singleton()->get_resource_path();
+			ProjectTemplate::get_singleton()->set_project_path(project_path);
+			ProjectTemplate::get_singleton()->show_dialog();
 		} break;
 		case SCENE_QUIT:
 		case PROJECT_QUIT_TO_PROJECT_MANAGER:
@@ -8172,6 +8177,8 @@ void EditorNode::_build_project_menu(bool p_dark_mode) {
 	project_menu->add_submenu_node_item(TTRC("Tools"), tool_menu);
 
 	project_menu->add_separator();
+	project_menu->add_item(TTRC("Create Template"), PROJECT_CREATE_TEMPLATE);
+	project_menu->add_separator();
 	project_menu->add_shortcut(ED_GET_SHORTCUT("editor/reload_current_project"), PROJECT_RELOAD_CURRENT_PROJECT);
 	project_menu->add_icon_shortcut(get_editor_theme_native_menu_icon(SNAME("Close"), menu_type == MENU_TYPE_GLOBAL, p_dark_mode), ED_GET_SHORTCUT("editor/quit_to_project_list"), PROJECT_QUIT_TO_PROJECT_MANAGER, true);
 }
@@ -8500,6 +8507,11 @@ EditorNode::EditorNode() {
 	// Load settings.
 	if (!EditorSettings::get_singleton()) {
 		EditorSettings::create();
+	}
+
+	// Initialize project template control.
+	if (!ProjectTemplate::get_singleton()) {
+		ProjectTemplate::initialize(true);
 	}
 
 	ED_SHORTCUT("editor/lock_selected_nodes", TTRC("Lock Selected Node(s)"), KeyModifierMask::CMD_OR_CTRL | Key::L);

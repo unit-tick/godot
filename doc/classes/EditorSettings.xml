@@ -823,6 +823,10 @@
 		<member name="filesystem/directories/default_project_path" type="String" setter="" getter="">
 			The folder where new projects should be created by default when clicking the project manager's [b]New Project[/b] button. This can be set to the same value as [member filesystem/directories/autoscan_project_path] for convenience.
 		</member>
+		<member name="filesystem/directories/project_template/project_templates_folder" type="String" setter="" getter="">
+			The folder that all project templates will be saved to and where godot will look for templates for project creation.
+			[b]Note:[/b] If this path is changed, templates will have to be moved manually to the new directory.
+		</member>
 		<member name="filesystem/external_programs/3d_model_editor" type="String" setter="" getter="">
 			The program that opens 3D model scene files when clicking "Open in External Program" option in Filesystem Dock. If not specified, the file will be opened in the system's default program.
 		</member>

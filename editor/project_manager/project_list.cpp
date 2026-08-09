@@ -1393,10 +1393,12 @@ void ProjectList::_open_menu(const Vector2 &p_at, Control *p_hb) {
 		project_context_menu->add_item(OS::get_singleton()->get_platform_string(OS::PLATFORM_STRING_FILE_MANAGER_OPEN), MENU_SHOW_IN_FILE_MANAGER);
 #endif // !defined(ANDROID_ENABLED) && !defined(WEB_ENABLED)
 		project_context_menu->add_item(TTRC("Copy Path"), MENU_COPY_PATH);
-		project_context_menu->add_separator();
 		project_context_menu->add_item(TTRC("Rename"), MENU_RENAME);
 		project_context_menu->add_item(TTRC("Manage Tags"), MENU_MANAGE_TAGS);
 		project_context_menu->add_item(TTRC("Duplicate"), MENU_DUPLICATE);
+		project_context_menu->add_separator();
+		project_context_menu->add_item(TTRC("Create Template"), MENU_CREATE_TEMPLATE);
+		project_context_menu->add_separator();
 		project_context_menu->add_item(TTRC("Remove from Project List"), MENU_REMOVE);
 		add_child(project_context_menu);
 		project_context_menu->connect(SceneStringName(id_pressed), callable_mp(this, &ProjectList::_menu_option));
@@ -1436,8 +1438,9 @@ void ProjectList::_update_menu_icons() {
 	project_context_menu->set_item_icon(project_context_menu->get_item_index(MENU_SHOW_IN_FILE_MANAGER), get_editor_theme_icon("Load"));
 #endif
 	project_context_menu->set_item_icon(project_context_menu->get_item_index(MENU_COPY_PATH), get_editor_theme_icon("ActionCopy"));
+	project_context_menu->set_item_icon(project_context_menu->get_item_index(MENU_CREATE_TEMPLATE), get_editor_theme_icon("Script"));
 	project_context_menu->set_item_icon(project_context_menu->get_item_index(MENU_RENAME), get_editor_theme_icon("Rename"));
-	project_context_menu->set_item_icon(project_context_menu->get_item_index(MENU_MANAGE_TAGS), get_editor_theme_icon("Script"));
+	project_context_menu->set_item_icon(project_context_menu->get_item_index(MENU_MANAGE_TAGS), get_editor_theme_icon("Tags"));
 	project_context_menu->set_item_icon(project_context_menu->get_item_index(MENU_DUPLICATE), get_editor_theme_icon("Duplicate"));
 	project_context_menu->set_item_icon(project_context_menu->get_item_index(MENU_REMOVE), get_editor_theme_icon("Remove"));
 }

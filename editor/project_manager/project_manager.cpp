@@ -53,6 +53,7 @@
 #include "editor/project_manager/project_list.h"
 #include "editor/project_manager/project_tag.h"
 #include "editor/project_manager/quick_settings_dialog.h"
+#include "editor/project_template/project_template.h"
 #include "editor/settings/editor_settings.h"
 #include "editor/themes/editor_scale.h"
 #include "editor/themes/editor_theme_manager.h"
@@ -294,9 +295,11 @@ void ProjectManager::_update_theme(bool p_skip_creation) {
 			run_btn->set_button_icon(get_editor_theme_icon("Play"));
 			rename_btn->set_button_icon(get_editor_theme_icon("Rename"));
 			duplicate_btn->set_button_icon(get_editor_theme_icon("Duplicate"));
-			manage_tags_btn->set_button_icon(get_editor_theme_icon("Script"));
+			manage_tags_btn->set_button_icon(get_editor_theme_icon("Tags"));
 			erase_btn->set_button_icon(get_editor_theme_icon("Remove"));
 			erase_missing_btn->set_button_icon(get_editor_theme_icon("Clear"));
+			manage_template_btn->set_button_icon(get_editor_theme_icon("Object"));
+			create_template_btn->set_button_icon(get_editor_theme_icon("Script"));
 			create_tag_btn->set_button_icon(get_editor_theme_icon("Add"));
 			donate_btn->set_button_icon(get_editor_theme_icon("Heart"));
 
@@ -456,6 +459,10 @@ void ProjectManager::_project_list_menu_option(int p_option) {
 				return;
 			}
 			DisplayServer::get_singleton()->clipboard_set(selected_list[0].path);
+		} break;
+
+		case ProjectList::MENU_CREATE_TEMPLATE: {
+			_open_template_create_dialog();
 		} break;
 
 		case ProjectList::MENU_RENAME:
@@ -905,6 +912,7 @@ void ProjectManager::_update_project_buttons() {
 	duplicate_btn->set_disabled(empty_selection || is_missing_project_selected);
 	manage_tags_btn->set_disabled(empty_selection || is_missing_project_selected || selected_projects.size() > 1);
 	run_btn->set_disabled(empty_selection || is_missing_project_selected);
+	create_template_btn->set_disabled(empty_selection || is_missing_project_selected || selected_projects.size() > 1);
 
 	erase_missing_btn->set_disabled(!project_list->is_any_project_missing());
 }
@@ -985,6 +993,10 @@ void ProjectManager::_on_project_created(const String &dir, bool edit) {
 	int i = project_list->refresh_project(dir);
 	project_list->ensure_project_visible(i);
 	_update_list_placeholder();
+
+	if (ProjectTemplate::get_singleton()->template_valid) {
+		ProjectTemplate::get_singleton()->copy_to_project_dir();
+	}
 
 	if (edit) {
 		_open_selected_projects_check_warnings();
@@ -1174,6 +1186,20 @@ void ProjectManager::add_new_tag(const String &p_tag) {
 		all_tags->move_child(tag_control, -2);
 		tag_control->connect_button_to(callable_mp(this, &ProjectManager::_add_project_tag).bind(p_tag));
 	}
+}
+
+// Project template.
+
+void ProjectManager::_open_template_manage_dialog() {
+	ProjectTemplate::get_singleton()->set_mode(ProjectTemplate::Mode::MODE_MANAGE);
+	ProjectTemplate::get_singleton()->show_dialog();
+}
+
+void ProjectManager::_open_template_create_dialog() {
+	const String path = project_list->get_selected_projects()[0].path;
+	ProjectTemplate::get_singleton()->set_project_path(path);
+	ProjectTemplate::get_singleton()->set_mode(ProjectTemplate::Mode::MODE_CREATE);
+	ProjectTemplate::get_singleton()->show_dialog();
 }
 
 // Project converter/migration tool.
@@ -1429,6 +1455,11 @@ ProjectManager::ProjectManager() {
 		}
 
 		OS::get_singleton()->set_low_processor_usage_mode(true);
+	}
+
+	// Initialize project template control.
+	if (!ProjectTemplate::get_singleton()) {
+		ProjectTemplate::initialize(false);
 	}
 
 #if defined(MODULE_GDSCRIPT_ENABLED) || defined(MODULE_MONO_ENABLED)
@@ -1699,16 +1730,16 @@ ProjectManager::ProjectManager() {
 
 			project_list_sidebar->add_child(memnew(HSeparator));
 
-			ScrollContainer *sidebar_scroll_containter = memnew(ScrollContainer);
-			sidebar_scroll_containter->set_horizontal_scroll_mode(ScrollContainer::SCROLL_MODE_DISABLED);
-			sidebar_scroll_containter->set_v_size_flags(Control::SIZE_EXPAND_FILL);
-			project_list_sidebar->add_child(sidebar_scroll_containter);
-			VBoxContainer *sidebar_buttons_containter = memnew(VBoxContainer);
-			sidebar_scroll_containter->add_child(sidebar_buttons_containter);
+			ScrollContainer *sidebar_scroll_container = memnew(ScrollContainer);
+			sidebar_scroll_container->set_horizontal_scroll_mode(ScrollContainer::SCROLL_MODE_DISABLED);
+			sidebar_scroll_container->set_v_size_flags(Control::SIZE_EXPAND_FILL);
+			project_list_sidebar->add_child(sidebar_scroll_container);
+			VBoxContainer *sidebar_buttons_container = memnew(VBoxContainer);
+			sidebar_scroll_container->add_child(sidebar_buttons_container);
 
 			open_btn_container = memnew(HBoxContainer);
 			open_btn_container->set_anchors_preset(Control::PRESET_FULL_RECT);
-			sidebar_buttons_containter->add_child(open_btn_container);
+			sidebar_buttons_container->add_child(open_btn_container);
 
 			open_btn = memnew(Button);
 			open_btn->set_text(TTRC("Edit"));
@@ -1737,35 +1768,47 @@ ProjectManager::ProjectManager() {
 			run_btn->set_text(TTRC("Run"));
 			run_btn->set_shortcut(ED_SHORTCUT("project_manager/run_project", TTRC("Run Project"), KeyModifierMask::CMD_OR_CTRL | Key::R));
 			run_btn->connect(SceneStringName(pressed), callable_mp(this, &ProjectManager::_run_project));
-			sidebar_buttons_containter->add_child(run_btn);
+			sidebar_buttons_container->add_child(run_btn);
 
 			rename_btn = memnew(Button);
 			rename_btn->set_text(TTRC("Rename"));
 			// The F2 shortcut isn't overridden with Enter on macOS as Enter is already used to edit a project.
 			rename_btn->set_shortcut(ED_SHORTCUT("project_manager/rename_project", TTRC("Rename Project"), Key::F2));
 			rename_btn->connect(SceneStringName(pressed), callable_mp(this, &ProjectManager::_rename_project));
-			sidebar_buttons_containter->add_child(rename_btn);
+			sidebar_buttons_container->add_child(rename_btn);
 
 			duplicate_btn = memnew(Button);
 			duplicate_btn->set_text(TTRC("Duplicate"));
 			duplicate_btn->connect(SceneStringName(pressed), callable_mp(this, &ProjectManager::_duplicate_project));
-			sidebar_buttons_containter->add_child(duplicate_btn);
+			sidebar_buttons_container->add_child(duplicate_btn);
 
 			manage_tags_btn = memnew(Button);
 			manage_tags_btn->set_text(TTRC("Manage Tags"));
 			manage_tags_btn->set_shortcut(ED_SHORTCUT("project_manager/project_tags", TTRC("Manage Tags"), KeyModifierMask::CMD_OR_CTRL | Key::T));
-			sidebar_buttons_containter->add_child(manage_tags_btn);
+			sidebar_buttons_container->add_child(manage_tags_btn);
 
 			erase_btn = memnew(Button);
 			erase_btn->set_text(TTRC("Remove"));
 			erase_btn->set_shortcut(ED_SHORTCUT("project_manager/remove_project", TTRC("Remove Project"), Key::KEY_DELETE));
 			erase_btn->connect(SceneStringName(pressed), callable_mp(this, &ProjectManager::_erase_project));
-			sidebar_buttons_containter->add_child(erase_btn);
+			sidebar_buttons_container->add_child(erase_btn);
 
 			erase_missing_btn = memnew(Button);
 			erase_missing_btn->set_text(TTRC("Remove Missing"));
 			erase_missing_btn->connect(SceneStringName(pressed), callable_mp(this, &ProjectManager::_erase_missing_projects));
-			sidebar_buttons_containter->add_child(erase_missing_btn);
+			sidebar_buttons_container->add_child(erase_missing_btn);
+
+			sidebar_buttons_container->add_child(memnew(HSeparator));
+
+			create_template_btn = memnew(Button);
+			create_template_btn->set_text(TTRC("Create Template"));
+			create_template_btn->connect(SceneStringName(pressed), callable_mp(this, &ProjectManager::_open_template_create_dialog));
+			sidebar_buttons_container->add_child(create_template_btn);
+
+			manage_template_btn = memnew(Button);
+			manage_template_btn->set_text(TTRC("Manage Templates"));
+			manage_template_btn->connect(SceneStringName(pressed), callable_mp(this, &ProjectManager::_open_template_manage_dialog));
+			sidebar_buttons_container->add_child(manage_template_btn);
 
 			donate_btn = memnew(Button);
 			donate_btn->set_text(TTRC("Donate"));

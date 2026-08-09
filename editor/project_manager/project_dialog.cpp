@@ -39,6 +39,7 @@
 #include "editor/editor_node.h"
 #include "editor/editor_string_names.h"
 #include "editor/gui/editor_file_dialog.h"
+#include "editor/project_template/project_template.h"
 #include "editor/settings/editor_settings.h"
 #include "editor/themes/editor_icons.h"
 #include "editor/themes/editor_scale.h"
@@ -536,6 +537,44 @@ void ProjectDialog::_renderer_selected() {
 	_update_ok_button();
 }
 
+void ProjectDialog::_load_template_options() {
+	const String dir = EDITOR_GET("filesystem/directories/project_template/project_templates_folder");
+	if (dir.is_empty()) {
+		template_container->hide();
+		return;
+	}
+	template_options->clear();
+
+	ConfigFile config;
+	Error err = config.load(dir.path_join(".templates"));
+	if (err != OK) {
+		template_container->hide();
+		return;
+	}
+	template_options->add_item("None", 0);
+	template_options->set_item_metadata(0, "None");
+	template_options->set_item_tooltip(0, "None");
+
+	PackedStringArray keys = config.get_section_keys("templates");
+	int idx = 1;
+	for (const String &t : keys) {
+		bool add_to_list = config.get_value("templates", t, false);
+
+		ConfigFile c;
+		if (add_to_list) {
+			c.load(dir.path_join(t).path_join("template.cfg"));
+			const String desc = config.get_value("description", "description", String());
+
+			template_options->add_item(t, idx);
+			template_options->set_item_metadata(idx, t);
+			template_options->set_item_tooltip(idx, desc);
+
+			idx++;
+		}
+	}
+	template_container->show();
+}
+
 void ProjectDialog::_nonempty_confirmation_ok_pressed() {
 	is_folder_empty = true;
 	ok_pressed();
@@ -632,6 +671,10 @@ void ProjectDialog::ok_pressed() {
 			f->close();
 			FileAccess::set_hidden_attribute(editor_config_path, true);
 		}
+
+		// Copy files from template.
+		const String t_name = template_options->get_selected_metadata();
+		ProjectTemplate::get_singleton()->template_selected(path, t_name);
 	}
 
 	// Two cases for importing a ZIP.
@@ -872,6 +915,7 @@ void ProjectDialog::show_dialog(bool p_reset_name, bool p_is_confirmed) {
 		name_container->show();
 		install_path_container->hide();
 		renderer_container->hide();
+		template_container->hide();
 		default_files_container->hide();
 
 		callable_mp((Control *)project_name, &Control::grab_focus).call_deferred(false);
@@ -913,6 +957,7 @@ void ProjectDialog::show_dialog(bool p_reset_name, bool p_is_confirmed) {
 			name_container->hide();
 			install_path_container->hide();
 			renderer_container->hide();
+			template_container->hide();
 			default_files_container->hide();
 			edit_check_box->show();
 
@@ -920,6 +965,10 @@ void ProjectDialog::show_dialog(bool p_reset_name, bool p_is_confirmed) {
 		} else if (mode == MODE_NEW) {
 			set_title(TTRC("Create New Project"));
 			set_ok_button_text(TTRC("Create"));
+
+			if (p_reset_name) {
+				_load_template_options();
+			}
 
 			if (!rendering_device_checked) {
 				rendering_device_supported = DisplayServer::is_rendering_device_supported();
@@ -955,6 +1004,7 @@ void ProjectDialog::show_dialog(bool p_reset_name, bool p_is_confirmed) {
 			name_container->show();
 			install_path_container->hide();
 			renderer_container->hide();
+			template_container->hide();
 			default_files_container->hide();
 			edit_check_box->show();
 
@@ -966,6 +1016,7 @@ void ProjectDialog::show_dialog(bool p_reset_name, bool p_is_confirmed) {
 			name_container->show();
 			install_path_container->hide();
 			renderer_container->hide();
+			template_container->hide();
 			default_files_container->hide();
 			edit_check_box->set_visible(duplicate_can_edit);
 
@@ -1199,6 +1250,18 @@ ProjectDialog::ProjectDialog() {
 	l->set_vertical_alignment(VERTICAL_ALIGNMENT_CENTER);
 	l->set_modulate(Color(1, 1, 1, 0.7));
 	renderer_container->add_child(l);
+
+	template_container = memnew(HBoxContainer);
+	vb->add_child(template_container);
+
+	l = memnew(Label);
+	l->set_text(TTRC("Template:"));
+	template_container->add_child(l);
+
+	template_options = memnew(OptionButton);
+	template_options->set_h_size_flags(Control::SIZE_SHRINK_CENTER);
+	template_options->set_fit_to_longest_item(true);
+	template_container->add_child(template_options);
 
 	default_files_container = memnew(HBoxContainer);
 	vb->add_child(default_files_container);

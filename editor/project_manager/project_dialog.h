@@ -89,6 +89,10 @@ private:
 	bool rendering_device_checked = false;
 	Label *rd_not_supported = nullptr;
 
+	HBoxContainer *template_container = nullptr;
+	OptionButton *template_options = nullptr;
+	bool template_selection_initialized = false;
+
 	Label *msg = nullptr;
 	LineEdit *project_name = nullptr;
 	LineEdit *project_path = nullptr;
@@ -143,6 +147,7 @@ private:
 
 	void _reset_name();
 	void _renderer_selected();
+	void _load_template_options();
 	void _nonempty_confirmation_ok_pressed();
 
 	void ok_pressed() override;

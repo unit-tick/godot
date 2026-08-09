@@ -128,6 +128,7 @@
 #include "editor/file_system/editor_paths.h"
 #include "editor/gui/progress_dialog.h"
 #include "editor/project_manager/project_manager.h"
+#include "editor/project_template/project_template.h"
 #include "editor/register_editor_types.h"
 #include "editor/settings/editor_settings.h"
 #include "editor/translations/editor_translation.h"
